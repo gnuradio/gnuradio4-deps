@@ -11,14 +11,44 @@ inputs:
   target-gr-blocks:
     description: Group default for the gr-blocks dependencies (TARGET_GR_BLOCKS)
     default: 'OFF'
+  target-all:
+    description: Enable all dependency groups (TARGET_ALL)
+    default: 'OFF'
+  target-gr-control-plane:
+    description: Group default for the control-plane dependencies (TARGET_GR_CONTROL_PLANE)
+    default: 'OFF'
+  target-gr-studio:
+    description: Group default for the Studio dependencies (TARGET_GR_STUDIO)
+    default: 'OFF'
+  target-tests:
+    description: Include test dependencies in group defaults (TARGET_TESTS)
+    default: 'ON'
+  enable-magic-enum:
+    description: Build magic-enum (ENABLE_MAGIC_ENUM). Empty follows target-gr-core
+    default: ''
+  enable-nlohmann-json:
+    description: Build nlohmann-json (ENABLE_NLOHMANN_JSON). Empty follows target-gr-control-plane
+    default: ''
+  enable-boost:
+    description: Build Boost (ENABLE_BOOST). Empty follows target-gr-control-plane
+    default: ''
+  enable-zlib:
+    description: Build zlib (ENABLE_ZLIB). Empty follows target-gr-control-plane
+    default: ''
+  enable-gtest:
+    description: Build GoogleTest (ENABLE_GTEST). Empty follows target-gr-control-plane and target-tests
+    default: ''
+  enable-openssl:
+    description: Build OpenSSL (ENABLE_OPENSSL). Empty follows target-gr-studio
+    default: ''
   enable-vir-simd:
     description: Build vir-simd (ENABLE_VIR_SIMD). Empty follows target-gr-core
     default: ''
   enable-httplib:
-    description: Build cpp-httplib (ENABLE_HTTPLIB). Empty follows target-gr-core
+    description: Build cpp-httplib (ENABLE_HTTPLIB). Empty follows core, control-plane or Studio
     default: ''
   enable-boost-ut:
-    description: Build boost.ut (ENABLE_BOOST_UT). Empty follows target-gr-core
+    description: Build boost.ut (ENABLE_BOOST_UT). Empty follows target-gr-core and target-tests
     default: ''
   enable-soapy-sdr:
     description: Build SoapySDR (ENABLE_SOAPY_SDR). Empty follows target-gr-blocks
@@ -87,6 +117,16 @@ runs:
       id: config
       shell: bash
       env:
+        IN_TARGET_ALL: ${{ inputs.target-all }}
+        IN_TARGET_GR_CONTROL_PLANE: ${{ inputs.target-gr-control-plane }}
+        IN_TARGET_GR_STUDIO: ${{ inputs.target-gr-studio }}
+        IN_TARGET_TESTS: ${{ inputs.target-tests }}
+        IN_ENABLE_MAGIC_ENUM: ${{ inputs.enable-magic-enum }}
+        IN_ENABLE_NLOHMANN_JSON: ${{ inputs.enable-nlohmann-json }}
+        IN_ENABLE_BOOST: ${{ inputs.enable-boost }}
+        IN_ENABLE_ZLIB: ${{ inputs.enable-zlib }}
+        IN_ENABLE_GTEST: ${{ inputs.enable-gtest }}
+        IN_ENABLE_OPENSSL: ${{ inputs.enable-openssl }}
         IN_TARGET_GR_CORE: ${{ inputs.target-gr-core }}
         IN_TARGET_GR_BLOCKS: ${{ inputs.target-gr-blocks }}
         IN_ENABLE_VIR_SIMD: ${{ inputs.enable-vir-simd }}
@@ -134,12 +174,29 @@ runs:
           printf '%s' "${p%/}"
         }
 
+        all=$(bool target-all "$IN_TARGET_ALL")
         core=$(bool target-gr-core "$IN_TARGET_GR_CORE")
         blocks=$(bool target-gr-blocks "$IN_TARGET_GR_BLOCKS")
+        control=$(bool target-gr-control-plane "$IN_TARGET_GR_CONTROL_PLANE")
+        studio=$(bool target-gr-studio "$IN_TARGET_GR_STUDIO")
+        tests=$(bool target-tests "$IN_TARGET_TESTS")
+        if [ "$all" = ON ]; then core=ON; blocks=ON; control=ON; studio=ON; fi
+        http_default=OFF
+        if [ "$core" = ON ] || [ "$control" = ON ] || [ "$studio" = ON ]; then http_default=ON; fi
+        ut_default=OFF
+        if [ "$core" = ON ] && [ "$tests" = ON ]; then ut_default=ON; fi
+        gtest_default=OFF
+        if [ "$control" = ON ] && [ "$tests" = ON ]; then gtest_default=ON; fi
         vir=$(toggle enable-vir-simd "$IN_ENABLE_VIR_SIMD" "$core")
-        httplib=$(toggle enable-httplib "$IN_ENABLE_HTTPLIB" "$core")
-        ut=$(toggle enable-boost-ut "$IN_ENABLE_BOOST_UT" "$core")
+        httplib=$(toggle enable-httplib "$IN_ENABLE_HTTPLIB" "$http_default")
+        ut=$(toggle enable-boost-ut "$IN_ENABLE_BOOST_UT" "$ut_default")
+        magic=$(toggle enable-magic-enum "$IN_ENABLE_MAGIC_ENUM" "$core")
         soapy=$(toggle enable-soapy-sdr "$IN_ENABLE_SOAPY_SDR" "$blocks")
+        json=$(toggle enable-nlohmann-json "$IN_ENABLE_NLOHMANN_JSON" "$control")
+        boost=$(toggle enable-boost "$IN_ENABLE_BOOST" "$control")
+        zlib=$(toggle enable-zlib "$IN_ENABLE_ZLIB" "$control")
+        gtest=$(toggle enable-gtest "$IN_ENABLE_GTEST" "$gtest_default")
+        openssl=$(toggle enable-openssl "$IN_ENABLE_OPENSSL" "$studio")
         tbb=$(toggle enable-tbb "$IN_ENABLE_TBB" OFF)
         python=$(toggle enable-python3 "$IN_ENABLE_PYTHON3" "$core")
 
@@ -210,6 +267,12 @@ runs:
         httplib=$httplib
         boost-ut=$ut
         soapy-sdr=$soapy
+        magic-enum=$magic
+        nlohmann-json=$json
+        boost=$boost
+        zlib=$zlib
+        gtest=$gtest
+        openssl=$openssl
         tbb=$tbb
         python3=$python
         cmake-args=$IN_CMAKE_ARGS
@@ -219,7 +282,7 @@ runs:
         )
         hash=$(printf '%s' "$manifest" | sha256)
         bit() { [ "$1" = ON ] && echo 1 || echo 0; }
-        selection="vir$(bit "$vir")-http$(bit "$httplib")-ut$(bit "$ut")-soapy$(bit "$soapy")-tbb$(bit "$tbb")-py$(bit "$python")"
+        selection="vir$(bit "$vir")-http$(bit "$httplib")-ut$(bit "$ut")-soapy$(bit "$soapy")-magic$(bit "$magic")-json$(bit "$json")-boost$(bit "$boost")-zlib$(bit "$zlib")-gtest$(bit "$gtest")-ssl$(bit "$openssl")-tbb$(bit "$tbb")-py$(bit "$python")"
         platform=$(lower "${ImageOS:-$RUNNER_OS}")
         key="$IN_CACHE_KEY_PREFIX-$(slug "$platform")-$(slug "$RUNNER_ARCH")-$(slug "$cxx_compiler")-$(slug "$build_type")-$selection-${hash:0:16}"
 
@@ -238,12 +301,22 @@ runs:
           echo "cache=$cache"
           echo "export-env=$export_env"
           echo "build-type=$build_type"
+          echo "target-all=$all"
+          echo "target-gr-control-plane=$control"
+          echo "target-gr-studio=$studio"
+          echo "target-tests=$tests"
           echo "target-gr-core=$core"
           echo "target-gr-blocks=$blocks"
           echo "vir-simd=$vir"
           echo "httplib=$httplib"
           echo "boost-ut=$ut"
           echo "soapy-sdr=$soapy"
+          echo "magic-enum=$magic"
+          echo "nlohmann-json=$json"
+          echo "boost=$boost"
+          echo "zlib=$zlib"
+          echo "gtest=$gtest"
+          echo "openssl=$openssl"
           echo "tbb=$tbb"
           echo "python3=$python"
           echo "msvc-runtime-static=$runtime_static"
@@ -272,6 +345,16 @@ runs:
         BUILD_DIR: ${{ steps.config.outputs.build-dir }}
         OWNED_BUILD: ${{ steps.config.outputs.owned-build }}
         BUILD_TYPE: ${{ steps.config.outputs.build-type }}
+        TARGET_ALL: ${{ steps.config.outputs.target-all }}
+        TARGET_GR_CONTROL_PLANE: ${{ steps.config.outputs.target-gr-control-plane }}
+        TARGET_GR_STUDIO: ${{ steps.config.outputs.target-gr-studio }}
+        TARGET_TESTS: ${{ steps.config.outputs.target-tests }}
+        ENABLE_MAGIC_ENUM: ${{ steps.config.outputs.magic-enum }}
+        ENABLE_NLOHMANN_JSON: ${{ steps.config.outputs.nlohmann-json }}
+        ENABLE_BOOST: ${{ steps.config.outputs.boost }}
+        ENABLE_ZLIB: ${{ steps.config.outputs.zlib }}
+        ENABLE_GTEST: ${{ steps.config.outputs.gtest }}
+        ENABLE_OPENSSL: ${{ steps.config.outputs.openssl }}
         TARGET_GR_CORE: ${{ steps.config.outputs.target-gr-core }}
         TARGET_GR_BLOCKS: ${{ steps.config.outputs.target-gr-blocks }}
         ENABLE_VIR_SIMD: ${{ steps.config.outputs.vir-simd }}
@@ -297,6 +380,16 @@ runs:
           -S "$ACTION_PATH" -B "$BUILD_DIR"
           "-DCMAKE_INSTALL_PREFIX=$PREFIX"
           "-DGR_DEPS_BUILD_TYPE=$BUILD_TYPE"
+          "-DTARGET_ALL=$TARGET_ALL"
+          "-DTARGET_GR_CONTROL_PLANE=$TARGET_GR_CONTROL_PLANE"
+          "-DTARGET_GR_STUDIO=$TARGET_GR_STUDIO"
+          "-DTARGET_TESTS=$TARGET_TESTS"
+          "-DENABLE_MAGIC_ENUM=$ENABLE_MAGIC_ENUM"
+          "-DENABLE_NLOHMANN_JSON=$ENABLE_NLOHMANN_JSON"
+          "-DENABLE_BOOST=$ENABLE_BOOST"
+          "-DENABLE_ZLIB=$ENABLE_ZLIB"
+          "-DENABLE_GTEST=$ENABLE_GTEST"
+          "-DENABLE_OPENSSL=$ENABLE_OPENSSL"
           "-DTARGET_GR_CORE=$TARGET_GR_CORE"
           "-DTARGET_GR_BLOCKS=$TARGET_GR_BLOCKS"
           "-DENABLE_VIR_SIMD=$ENABLE_VIR_SIMD"
