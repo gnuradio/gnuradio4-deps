@@ -1,4 +1,4 @@
-# gr-deps
+# gnuradio4-deps
 
 A CMake superbuild for the third-party dependencies of GNU Radio 4.
 
@@ -34,7 +34,7 @@ steps:
   - uses: actions/checkout@v4
 
   - id: deps
-    uses: johnwparent/gnuradio4-superbuild@main
+    uses: gnuradio/gnuradio4-deps@main
     with:
       target-gr-blocks: ON
 
