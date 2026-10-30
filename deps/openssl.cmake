@@ -43,7 +43,7 @@ if(ENABLE_OPENSSL)
       openssl
       URL ${gr_deps_openssl_url}
       URL_HASH ${gr_deps_openssl_hash}
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+      ${GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS}
       DEPENDS ${GR_DEPS_PERL_TARGET} ${GR_DEPS_NASM_TARGET}
       INSTALL_DIR "${GR_DEPS_INSTALL_PREFIX}"
       CONFIGURE_COMMAND "${gr_deps_openssl_env}" perl <SOURCE_DIR>/Configure VC-WIN64A ${gr_deps_openssl_args}
@@ -57,7 +57,7 @@ if(ENABLE_OPENSSL)
       openssl
       URL ${gr_deps_openssl_url}
       URL_HASH ${gr_deps_openssl_hash}
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+      ${GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS}
       DEPENDS ${GR_DEPS_PERL_TARGET}
       INSTALL_DIR "${GR_DEPS_INSTALL_PREFIX}"
       CONFIGURE_COMMAND "${GR_DEPS_PERL}" <SOURCE_DIR>/Configure ${gr_deps_openssl_args}
