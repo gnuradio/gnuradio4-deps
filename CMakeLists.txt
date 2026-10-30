@@ -11,11 +11,6 @@ option(TARGET_GR_BLOCKS "Build dependencies needed for GR Blocks development" OF
 option(TARGET_GR_CONTROL_PLANE "Build dependencies needed for GR Control Plane development" OFF)
 option(TARGET_GR_STUDIO "Build dependencies needed for GR Studio development" OFF)
 
-option(ENABLE_VIR_SIMD "Build vir-simd subproject" ${TARGET_GR_CORE})
-option(ENABLE_HTTPLIB "Build cpp-httplib subproject" ${TARGET_GR_CORE})
-option(ENABLE_BOOST_UT "Build boost.ut subproject" ${TARGET_GR_CORE})
-option(ENABLE_MAGIC_ENUM "Build magic-enum subproject" ${TARGET_GR_CORE})
-
 if(TARGET_ALL)
   set(TARGET_GR_CORE ON)
   set(TARGET_GR_BLOCKS ON)
