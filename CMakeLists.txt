@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21..4.5)
+cmake_minimum_required(VERSION 3.24)
 
 project(GR_DEPS LANGUAGES NONE)
 

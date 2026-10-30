@@ -1,0 +1,31 @@
+name: CMake compatibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cmake: ['3.24.3', '4.2.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CMake
+        run: python -m pip install cmake==${{ matrix.cmake }}
+      - name: Configure default dependencies
+        run: cmake -S . -B build-default -DENABLE_PYTHON3=OFF
+      - name: Configure all dependencies
+        run: cmake -S . -B build-all -DTARGET_ALL=ON -DENABLE_PYTHON3=OFF
+      - name: Configure without dependencies
+        run: cmake -S . -B build-empty -DTARGET_GR_CORE=OFF

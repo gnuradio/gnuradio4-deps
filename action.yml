@@ -175,7 +175,7 @@ runs:
         rm -rf "$probe"
         mkdir -p "$probe/src"
         cat > "$probe/src/CMakeLists.txt" << 'EOF'
-        cmake_minimum_required(VERSION 3.21)
+        cmake_minimum_required(VERSION 3.24)
         project(gr_deps_toolchain_probe LANGUAGES C CXX)
         file(WRITE "${CMAKE_BINARY_DIR}/toolchain.txt"
              "${CMAKE_C_COMPILER_ID}-${CMAKE_C_COMPILER_VERSION}\n${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}\n${CMAKE_SYSTEM_PROCESSOR}\n")
