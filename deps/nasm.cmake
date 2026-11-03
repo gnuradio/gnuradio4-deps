@@ -52,7 +52,7 @@ else()
       nasm
       URL ${gr_deps_nasm_url}
       URL_HASH ${gr_deps_nasm_hash}
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+      ${GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS}
       DEPENDS ${GR_DEPS_PERL_TARGET}
       BUILD_IN_SOURCE TRUE
       INSTALL_DIR "${GR_DEPS_TOOLS_PREFIX}"
@@ -69,7 +69,7 @@ else()
       nasm
       URL ${gr_deps_nasm_url}
       URL_HASH ${gr_deps_nasm_hash}
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+      ${GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS}
       BUILD_IN_SOURCE TRUE
       INSTALL_DIR "${GR_DEPS_TOOLS_PREFIX}"
       CONFIGURE_COMMAND sh configure --prefix=<INSTALL_DIR>

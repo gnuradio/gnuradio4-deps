@@ -11,7 +11,7 @@ if(ENABLE_BOOST)
     boost
     URL https://github.com/boostorg/boost/releases/download/boost-1.92.0/boost-1.92.0-cmake.tar.xz
     URL_HASH SHA256=9bed76128d4e46755dbe818487788c6fceb6f72b378f4daa49b7e1e600d9088d
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    ${GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS}
     LIST_SEPARATOR |
     INSTALL_DIR "${GR_DEPS_INSTALL_PREFIX}"
     CMAKE_GENERATOR "${CMAKE_GENERATOR}"

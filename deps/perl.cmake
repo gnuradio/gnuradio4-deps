@@ -61,7 +61,7 @@ else()
       perl
       URL ${gr_deps_perl_url}
       URL_HASH ${gr_deps_perl_hash}
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+      ${GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS}
       SOURCE_SUBDIR win32
       BUILD_IN_SOURCE TRUE
       INSTALL_DIR "${GR_DEPS_TOOLS_PREFIX}"
@@ -76,7 +76,7 @@ else()
       perl
       URL ${gr_deps_perl_url}
       URL_HASH ${gr_deps_perl_hash}
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+      ${GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS}
       BUILD_IN_SOURCE TRUE
       INSTALL_DIR "${GR_DEPS_TOOLS_PREFIX}"
       CONFIGURE_COMMAND sh Configure -des -Dprefix=<INSTALL_DIR>

@@ -1,8 +1,15 @@
-cmake_minimum_required(VERSION 3.21..4.5)
+cmake_minimum_required(VERSION 3.21)
 
 project(GR_DEPS LANGUAGES NONE)
 
 include(ExternalProject)
+
+# This ExternalProject option was introduced in CMake 3.24. Older versions
+# already preserve archive timestamps by default.
+set(GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS "")
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+  set(GR_DEPS_DOWNLOAD_TIMESTAMP_ARGS DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+endif()
 
 # target groups
 option(TARGET_ALL "Build Dependencies needed for all GR libraries" OFF)
