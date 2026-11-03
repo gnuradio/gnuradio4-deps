@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Matthias Kretz <m.kretz@gsi.de>
+Date: Thu, 8 May 2025 11:16:29 +0200
+Subject: [PATCH 6/6] Include <bit> for bit_cast
+
+ChangeLog:
+
+	* vir/detail.h: Conditionally on __has_include, include <bit>.
+---
+ vir/detail.h | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/vir/detail.h b/vir/detail.h
+index 56076a0..ba54e14 100644
+--- a/vir/detail.h
++++ b/vir/detail.h
+@@ -9,6 +9,12 @@
+ #include "simd.h"
+ #include "constexpr_wrapper.h"
+ #include <type_traits>
++#if __has_include (<bit>) && __cplusplus >= 202002L
++#include <bit> // for bit_cast
++#define VIR_HAVE_STD_BIT_CAST 1
++#else
++#define VIR_HAVE_STD_BIT_CAST 0
++#endif
+ 
+ #if defined _GLIBCXX_EXPERIMENTAL_SIMD_H && defined __cpp_lib_experimental_parallel_simd
+ #define VIR_GLIBCXX_STDX_SIMD 1
+@@ -210,7 +216,7 @@ namespace vir::detail
+     bit_cast(const From& x)
+     {
+       static_assert(sizeof(To) == sizeof(From));
+-#ifdef __cpp_lib_bit_cast
++#if VIR_HAVE_STD_BIT_CAST
+       return std::bit_cast<To>(x);
+ #elif VIR_HAVE_BUILTIN_BIT_CAST
+       return __builtin_bit_cast(To, x);

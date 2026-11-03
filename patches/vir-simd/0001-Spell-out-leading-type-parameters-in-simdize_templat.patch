@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Parent <john.parent@kitware.com>
+Date: Tue, 13 Oct 2026 18:24:48 -0400
+Subject: [PATCH 1/6] Spell out leading type parameters in
+ simdize_template_arguments_impl
+
+MSVC cannot deduce an NTTP pack that follows a type pack (C3547).
+
+ChangeLog:
+
+	* vir/simdize.h (detail::simdize_template_arguments_impl): Use
+	T0, T1[, T2] instead of a type pack in the Tpl<T, T, auto...> and
+	Tpl<T, T, T, auto...> overloads.
+
+Signed-off-by: John Parent <john.parent@kitware.com>
+Assisted-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ vir/simdize.h | 20 ++++++++++++--------
+ 1 file changed, 12 insertions(+), 8 deletions(-)
+
+diff --git a/vir/simdize.h b/vir/simdize.h
+index 0385ef9..8eeb7f6 100644
+--- a/vir/simdize.h
++++ b/vir/simdize.h
+@@ -181,18 +181,22 @@ namespace vir
+       simdize_template_arguments_impl(const Tpl<T, X...>&);
+ 
+     template <std::size_t N, template <typename, typename, auto...> class Tpl,
+-	      typename... Ts, auto... X>
++	      typename T0, typename T1, auto... X>
+       requires(sizeof...(X) > 0)
+-	and ((simdize_impl<Ts, N>::type::size() == N) and ...)
+-      Tpl<typename simdize_impl<Ts, N>::type..., X...>
+-      simdize_template_arguments_impl(const Tpl<Ts..., X...>&);
++	and (simdize_impl<T0, N>::type::size() == N)
++	and (simdize_impl<T1, N>::type::size() == N)
++      Tpl<typename simdize_impl<T0, N>::type, typename simdize_impl<T1, N>::type, X...>
++      simdize_template_arguments_impl(const Tpl<T0, T1, X...>&);
+ 
+     template <std::size_t N, template <typename, typename, typename, auto...> class Tpl,
+-	      typename... Ts, auto... X>
++	      typename T0, typename T1, typename T2, auto... X>
+       requires(sizeof...(X) > 0)
+-	and ((simdize_impl<Ts, N>::type::size() == N) and ...)
+-      Tpl<typename simdize_impl<Ts, N>::type..., X...>
+-      simdize_template_arguments_impl(const Tpl<Ts..., X...>&);
++	and (simdize_impl<T0, N>::type::size() == N)
++	and (simdize_impl<T1, N>::type::size() == N)
++	and (simdize_impl<T2, N>::type::size() == N)
++      Tpl<typename simdize_impl<T0, N>::type, typename simdize_impl<T1, N>::type,
++	  typename simdize_impl<T2, N>::type, X...>
++      simdize_template_arguments_impl(const Tpl<T0, T1, T2, X...>&);
+ 
+     template <typename T, int N>
+       struct simdize_template_arguments;
