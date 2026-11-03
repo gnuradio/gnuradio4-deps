@@ -53,6 +53,15 @@ inputs:
   enable-soapy-sdr:
     description: Build SoapySDR (ENABLE_SOAPY_SDR). Empty follows target-gr-blocks
     default: ''
+  enable-libzmq:
+    description: Build libzmq (ENABLE_LIBZMQ). Empty follows target-gr-blocks
+    default: ''
+  enable-cppzmq:
+    description: Build cppzmq (ENABLE_CPPZMQ). Empty follows target-gr-blocks
+    default: ''
+  enable-libsoundio:
+    description: Build libsoundio (ENABLE_LIBSOUNDIO). Empty follows target-gr-blocks
+    default: ''
   enable-tbb:
     description: Locate TBB, which must already be installed (ENABLE_TBB). Empty means OFF
     default: ''
@@ -133,6 +142,9 @@ runs:
         IN_ENABLE_HTTPLIB: ${{ inputs.enable-httplib }}
         IN_ENABLE_BOOST_UT: ${{ inputs.enable-boost-ut }}
         IN_ENABLE_SOAPY_SDR: ${{ inputs.enable-soapy-sdr }}
+        IN_ENABLE_LIBZMQ: ${{ inputs.enable-libzmq }}
+        IN_ENABLE_CPPZMQ: ${{ inputs.enable-cppzmq }}
+        IN_ENABLE_LIBSOUNDIO: ${{ inputs.enable-libsoundio }}
         IN_ENABLE_TBB: ${{ inputs.enable-tbb }}
         IN_ENABLE_PYTHON3: ${{ inputs.enable-python3 }}
         IN_BUILD_TYPE: ${{ inputs.build-type }}
@@ -192,6 +204,9 @@ runs:
         ut=$(toggle enable-boost-ut "$IN_ENABLE_BOOST_UT" "$ut_default")
         magic=$(toggle enable-magic-enum "$IN_ENABLE_MAGIC_ENUM" "$core")
         soapy=$(toggle enable-soapy-sdr "$IN_ENABLE_SOAPY_SDR" "$blocks")
+        libzmq=$(toggle enable-libzmq "$IN_ENABLE_LIBZMQ" "$blocks")
+        cppzmq=$(toggle enable-cppzmq "$IN_ENABLE_CPPZMQ" "$blocks")
+        soundio=$(toggle enable-libsoundio "$IN_ENABLE_LIBSOUNDIO" "$blocks")
         json=$(toggle enable-nlohmann-json "$IN_ENABLE_NLOHMANN_JSON" "$control")
         boost=$(toggle enable-boost "$IN_ENABLE_BOOST" "$control")
         zlib=$(toggle enable-zlib "$IN_ENABLE_ZLIB" "$control")
@@ -246,9 +261,10 @@ runs:
         { read -r c_compiler; read -r cxx_compiler; read -r processor; } < <(tr -d '\r' < "$probe/build/toolchain.txt")
         rm -rf "$probe"
 
-        # the pins live in the CMake sources and the build recipe in this file, so a change to either
-        # is a new build
-        sources=$(cat "$action_path/action.yml" "$action_path/CMakeLists.txt" "$action_path"/deps/*.cmake | sha256)
+        # the pins live in the CMake sources, the patches change what they install, and the build
+        # recipe is this file, so a change to any of them is a new build
+        sources=$(cat "$action_path/action.yml" "$action_path/CMakeLists.txt" "$action_path"/deps/*.cmake \
+                      "$action_path"/patches/*/*.patch | sha256)
 
         # keyed on the resolved toggles rather than the groups: the groups only supply defaults, so two
         # requests that resolve to the same set share an entry
@@ -267,6 +283,9 @@ runs:
         httplib=$httplib
         boost-ut=$ut
         soapy-sdr=$soapy
+        libzmq=$libzmq
+        cppzmq=$cppzmq
+        libsoundio=$soundio
         magic-enum=$magic
         nlohmann-json=$json
         boost=$boost
@@ -282,7 +301,7 @@ runs:
         )
         hash=$(printf '%s' "$manifest" | sha256)
         bit() { [ "$1" = ON ] && echo 1 || echo 0; }
-        selection="vir$(bit "$vir")-http$(bit "$httplib")-ut$(bit "$ut")-soapy$(bit "$soapy")-magic$(bit "$magic")-json$(bit "$json")-boost$(bit "$boost")-zlib$(bit "$zlib")-gtest$(bit "$gtest")-ssl$(bit "$openssl")-tbb$(bit "$tbb")-py$(bit "$python")"
+        selection="vir$(bit "$vir")-http$(bit "$httplib")-ut$(bit "$ut")-soapy$(bit "$soapy")-zmq$(bit "$libzmq")-cppzmq$(bit "$cppzmq")-sio$(bit "$soundio")-magic$(bit "$magic")-json$(bit "$json")-boost$(bit "$boost")-zlib$(bit "$zlib")-gtest$(bit "$gtest")-ssl$(bit "$openssl")-tbb$(bit "$tbb")-py$(bit "$python")"
         platform=$(lower "${ImageOS:-$RUNNER_OS}")
         key="$IN_CACHE_KEY_PREFIX-$(slug "$platform")-$(slug "$RUNNER_ARCH")-$(slug "$cxx_compiler")-$(slug "$build_type")-$selection-${hash:0:16}"
 
@@ -311,6 +330,9 @@ runs:
           echo "httplib=$httplib"
           echo "boost-ut=$ut"
           echo "soapy-sdr=$soapy"
+          echo "libzmq=$libzmq"
+          echo "cppzmq=$cppzmq"
+          echo "libsoundio=$soundio"
           echo "magic-enum=$magic"
           echo "nlohmann-json=$json"
           echo "boost=$boost"
@@ -361,6 +383,9 @@ runs:
         ENABLE_HTTPLIB: ${{ steps.config.outputs.httplib }}
         ENABLE_BOOST_UT: ${{ steps.config.outputs.boost-ut }}
         ENABLE_SOAPY_SDR: ${{ steps.config.outputs.soapy-sdr }}
+        ENABLE_LIBZMQ: ${{ steps.config.outputs.libzmq }}
+        ENABLE_CPPZMQ: ${{ steps.config.outputs.cppzmq }}
+        ENABLE_LIBSOUNDIO: ${{ steps.config.outputs.libsoundio }}
         ENABLE_TBB: ${{ steps.config.outputs.tbb }}
         ENABLE_PYTHON3: ${{ steps.config.outputs.python3 }}
         MSVC_RUNTIME_STATIC: ${{ steps.config.outputs.msvc-runtime-static }}
@@ -396,6 +421,9 @@ runs:
           "-DENABLE_HTTPLIB=$ENABLE_HTTPLIB"
           "-DENABLE_BOOST_UT=$ENABLE_BOOST_UT"
           "-DENABLE_SOAPY_SDR=$ENABLE_SOAPY_SDR"
+          "-DENABLE_LIBZMQ=$ENABLE_LIBZMQ"
+          "-DENABLE_CPPZMQ=$ENABLE_CPPZMQ"
+          "-DENABLE_LIBSOUNDIO=$ENABLE_LIBSOUNDIO"
           "-DENABLE_TBB=$ENABLE_TBB"
           "-DENABLE_PYTHON3=$ENABLE_PYTHON3"
           "-DGR_DEPS_MSVC_RUNTIME_STATIC=$MSVC_RUNTIME_STATIC"
