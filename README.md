@@ -25,9 +25,9 @@ cmake -S ../gr-core -B ../gr-core/build -DCMAKE_PREFIX_PATH=/path/to/prefix
 
 Dependencies are built on demand, so `cmake --build build --target boost.ut` builds just that one.
 
-Every dependency installs a CMake package, or, where it ships none (libsoundio), the library and
-headers a `find_library`/`find_path` looks for. The GR projects are expected to find them with CMake
-alone; no pkg-config is involved.
+Every dependency installs a CMake package; libsoundio ships none of its own, so a patch adds one,
+and with CMake 4.3 or newer a CPS package beside it. The GR projects are expected to find them with
+CMake alone; no pkg-config is involved.
 
 ## GitHub Action
 
@@ -213,7 +213,11 @@ already patched tree.
   them.
 - **libsoundio** installs its DLL into `bin` rather than `lib`, and compiles as C++ under MSVC with
   every generator (its `/TP` flag is ignored by the Visual Studio generators, and the C build needs
-  C11 atomics MSVC lacks).
+  C11 atomics MSVC lacks). It also exports the shared library as `libsoundio::libsoundio` through a
+  CMake config package, and, when the CMake building it is 4.3 or newer (the first release that
+  writes and reads CPS without an experimental gate), through a CPS package too; a consumer's
+  `find_package(libsoundio)` prefers the `.cps` file where its CMake reads one. The backends are
+  linked privately, so neither package names them.
 
 ## Options
 
@@ -292,6 +296,8 @@ look for are in it:
 <prefix>/include/vir/
 <prefix>/include/zmq.hpp
 <prefix>/include/soundio/soundio.h
+<prefix>/lib/cmake/libsoundio/libsoundioConfig.cmake
+<prefix>/lib/cps/libsoundio/libsoundio.cps     (built with CMake 4.3 or newer)
 <prefix>/lib/cmake/ut/utConfig.cmake
 <prefix>/lib/cmake/vir-simd/vir-simd-config.cmake
 <prefix>/lib/cmake/ZeroMQ/ZeroMQConfig.cmake     (<prefix>/CMake/ZeroMQConfig.cmake on Windows)
@@ -352,9 +358,8 @@ The setting is harmless on non-MSVC toolchains, which ignore it.
   draft API are all off, so it depends on nothing beyond the platform. Only cppzmq's `cppzmq`
   target is usable; `cppzmq-static` names a static libzmq that is not built.
 - **libzmq and cppzmq also install pkg-config files**, as their own builds do, but nothing here
-  relies on them. gr-blocks' network family currently finds libzmq only through pkg-config, so on a
-  machine without pkg-config it should move to `find_package(ZeroMQ)` or the `cppzmq` target, which
-  carries libzmq with it.
+  relies on them. gr-blocks finds both through `find_package(cppzmq)`, whose `cppzmq` target carries
+  libzmq with it.
 - **libsoundio is built shared only.** On Windows its static library and its DLL's import library
   would both be `soundio.lib`, and gr-blocks does not define `SOUNDIO_STATIC_LIBRARY`, so its
   headers expect the DLL.

@@ -1,6 +1,7 @@
 # libsoundio: the cross-platform audio I/O library behind gr-blocks' audio block family. It ships no
-# CMake or pkg-config package; gr-blocks finds it with find_library(soundio) and
-# find_path(soundio/soundio.h), which the shared prefix answers.
+# CMake or pkg-config package of its own, so patches/libsoundio exports the shared library as
+# libsoundio::libsoundio through a CMake config package, and through a CPS package as well when the
+# CMake running this superbuild is 4.3 or newer; gr-blocks finds it with find_package(libsoundio).
 #
 # Shared only: on Windows the static library and the DLL's import library are both soundio.lib, and
 # gr-blocks does not define SOUNDIO_STATIC_LIBRARY, so its headers expect the DLL. patches/libsoundio
