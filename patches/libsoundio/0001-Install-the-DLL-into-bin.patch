@@ -1,0 +1,19 @@
+Install the shared library's DLL into bin, beside every other DLL
+
+A bare DESTINATION covers the RUNTIME artifact too, so on Windows soundio.dll
+landed in lib next to its import library, off the PATH a consumer runs from.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -233,7 +233,10 @@
+         LINKER_LANGUAGE C
+     )
+     target_link_libraries(libsoundio_shared LINK_PUBLIC ${LIBSOUNDIO_LIBS})
+-    install(TARGETS libsoundio_shared DESTINATION ${CMAKE_INSTALL_LIBDIR})
++    install(TARGETS libsoundio_shared
++        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
++        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+ endif()
+ 
+ if(BUILD_STATIC_LIBS)
