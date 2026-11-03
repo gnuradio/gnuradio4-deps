@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Parent <john.parent@kitware.com>
+Date: Tue, 13 Oct 2026 18:24:49 -0400
+Subject: [PATCH 3/6] Work around MSVC not constant-evaluating the permute
+ index
+
+MSVC does not constant-evaluate idx_perm(i) through a reference capture
+(C2131, C7595). Permutation functions are stateless, so call a
+value-initialized F instead.
+
+ChangeLog:
+
+	* vir/simd_permute.h (detail::msvc_permute_index): New.
+	(simd_permute): Use it for MSVC.
+
+Signed-off-by: John Parent <john.parent@kitware.com>
+Assisted-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ vir/simd_permute.h | 25 +++++++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/vir/simd_permute.h b/vir/simd_permute.h
+index 2b756d3..eb7ddce 100644
+--- a/vir/simd_permute.h
++++ b/vir/simd_permute.h
+@@ -146,6 +146,23 @@ namespace vir
+ 
+ #undef VIR_CONSTEVAL
+ 
++#if defined _MSC_VER && !defined __clang__
++  namespace detail
++  {
++    // MSVC cannot constant-evaluate idx_perm(i) through a reference capture. Permutation
++    // functions are stateless, so call a value-initialized F instead.
++    template <typename F, std::size_t Size, typename I>
++      constexpr int
++      msvc_permute_index(I i)
++      {
++	if constexpr (index_permutation_function_nosize<F>)
++	  return F{}(i);
++	else
++	  return F{}(i, vir::cw<Size>);
++      }
++  }
++#endif
++
+   template <std::size_t N = 0, vir::any_simd_or_mask V,
+ 	    detail::index_permutation_function<V::size()> F>
+     VIR_ALWAYS_INLINE constexpr stdx::resize_simd_t<N == 0 ? V::size() : N, V>
+@@ -221,12 +238,16 @@ namespace vir
+ #endif // __GNUC__
+ 
+       return R([&](auto i) -> T {
++#if defined _MSC_VER && !defined __clang__
++	       constexpr int j = detail::msvc_permute_index<F, V::size()>(i);
++#else
+ 	       constexpr int j = [&] {
+ 		 if constexpr (detail::index_permutation_function_nosize<F>)
+ 		   return idx_perm(i);
+ 		 else
+ 		   return idx_perm(i, vir::cw<V::size()>);
+ 	       }();
++#endif
+ 	       if constexpr (j == simd_permute_zero)
+ 		 return 0;
+ 	       else if constexpr (j == simd_permute_uninit)
+@@ -255,12 +276,16 @@ namespace vir
+       if constexpr (N <= 1)
+ 	{
+ 	  constexpr auto i = vir::cw<0>;
++#if defined _MSC_VER && !defined __clang__
++	  constexpr int j = detail::msvc_permute_index<F, std::size_t(1)>(i);
++#else
+ 	  constexpr int j = [&] {
+ 	    if constexpr (detail::index_permutation_function_nosize<F>)
+ 	      return idx_perm(i);
+ 	    else
+ 	      return idx_perm(i, vir::cw<std::size_t(1)>);
+ 	  }();
++#endif
+ 	  if constexpr (j == simd_permute_zero)
+ 	    return 0;
+ 	  else if constexpr (j == simd_permute_uninit)

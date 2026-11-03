@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Parent <john.parent@kitware.com>
+Date: Tue, 13 Oct 2026 18:24:48 -0400
+Subject: [PATCH 2/6] Compute simdize_size in a function template
+
+MSVC instantiates the discarded if constexpr branches of the lambda in
+simdize_size's base clause, which fails for simd types (C7602).
+
+ChangeLog:
+
+	* vir/simdize.h (detail::simdize_size_impl): New, moved out of
+	the lambda in simdize_size's base clause.
+	(simdize_size): Use it.
+
+Signed-off-by: John Parent <john.parent@kitware.com>
+Assisted-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ vir/simdize.h | 31 ++++++++++++++++++++++---------
+ 1 file changed, 22 insertions(+), 9 deletions(-)
+
+diff --git a/vir/simdize.h b/vir/simdize.h
+index 8eeb7f6..de83f5a 100644
+--- a/vir/simdize.h
++++ b/vir/simdize.h
+@@ -22,15 +22,17 @@
+ 
+ namespace vir
+ {
+-  /**
+-   * Determines the SIMD width of the given structure. This can either be a stdx::simd object or a
+-   * tuple-like of stdx::simd (recursively). The latter requires that the SIMD width is homogeneous.
+-   * If T is not a simd (or tuple thereof), value is 0.
+-   */
+-  // Implementation note: partial specialization via concepts is broken on clang < 16
+   template <typename T>
+-    struct simdize_size
+-    : vir::constexpr_wrapper<[]() -> int {
++    struct simdize_size;
++
++  /// \internal
++  namespace detail
++  {
++    // Not a lambda in simdize_size's base clause: MSVC instantiates the discarded branches there.
++    template <typename T>
++      constexpr int
++      simdize_size_impl()
++      {
+ 	if constexpr (stdx::is_simd_v<T>)
+ 	  return T::size();
+ 	else if constexpr (reflectable_struct<T> and []<std::size_t... Is>(
+@@ -41,7 +43,18 @@ namespace vir
+ 	  return simdize_size<vir::struct_element_t<0, T>>::value;
+ 	else
+ 	  return 0;
+-      }()>
++      }
++  }
++
++  /**
++   * Determines the SIMD width of the given structure. This can either be a stdx::simd object or a
++   * tuple-like of stdx::simd (recursively). The latter requires that the SIMD width is homogeneous.
++   * If T is not a simd (or tuple thereof), value is 0.
++   */
++  // Implementation note: partial specialization via concepts is broken on clang < 16
++  template <typename T>
++    struct simdize_size
++    : vir::constexpr_wrapper<detail::simdize_size_impl<T>()>
+     {};
+ 
+   template <typename T>

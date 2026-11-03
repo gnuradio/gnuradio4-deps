@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Parent <john.parent@kitware.com>
+Date: Tue, 13 Oct 2026 18:24:58 -0400
+Subject: [PATCH 5/6] Enable constexpr_wrapper and simd concepts for MSVC
+
+ChangeLog:
+
+	* vir/constexpr_wrapper.h: Accept _MSC_VER in the feature check.
+	* vir/simd_concepts.h: Likewise.
+
+Signed-off-by: John Parent <john.parent@kitware.com>
+Assisted-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ vir/constexpr_wrapper.h | 2 +-
+ vir/simd_concepts.h     | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/vir/constexpr_wrapper.h b/vir/constexpr_wrapper.h
+index 95946cc..12b34e9 100644
+--- a/vir/constexpr_wrapper.h
++++ b/vir/constexpr_wrapper.h
+@@ -7,7 +7,7 @@
+ #define VIR_CONSTEXPR_WRAPPER_H_
+ 
+ #if defined __cpp_concepts && __cpp_concepts >= 201907 && __has_include(<concepts>) \
+-  && (__GNUC__ > 10 || defined __clang__)
++  && (defined _MSC_VER || __GNUC__ > 10 || defined __clang__)
+ #define VIR_HAVE_CONSTEXPR_WRAPPER 1
+ #include <algorithm>
+ #include <array>
+diff --git a/vir/simd_concepts.h b/vir/simd_concepts.h
+index 3e18841..44443e6 100644
+--- a/vir/simd_concepts.h
++++ b/vir/simd_concepts.h
+@@ -7,7 +7,7 @@
+ #define VIR_SIMD_CONCEPTS_H_
+ 
+ #if defined __cpp_concepts && __cpp_concepts >= 201907 && __has_include(<concepts>) \
+-  && (__GNUC__ > 10 || defined __clang__)
++  && (defined _MSC_VER || __GNUC__ > 10 || defined __clang__)
+ #define VIR_HAVE_SIMD_CONCEPTS 1
+ #include <concepts>
+ 
