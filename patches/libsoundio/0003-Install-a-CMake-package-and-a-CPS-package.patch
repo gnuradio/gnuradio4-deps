@@ -1,0 +1,72 @@
+Install a CMake package, and with CMake 4.3 or newer a CPS package
+
+libsoundio installs no package of its own, so every consumer had to find it
+with find_library and find_path and wrap the result itself. The shared library
+is now exported as libsoundio::libsoundio, with the include directory its
+headers install under, through a CMake config package (SameMajorVersion) and,
+where the CMake building it reads and writes the Common Package Specification
+without an experimental gate, a .cps file beside it.
+
+The shared library links its backends privately: a consumer links soundio
+alone, and LINK_PUBLIC would export the backends' absolute paths.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -236,11 +236,15 @@ if(BUILD_DYNAMIC_LIBS)
+         COMPILE_FLAGS ${LIB_CFLAGS}
+         LINKER_LANGUAGE C
+     )
+-    target_link_libraries(libsoundio_shared LINK_PUBLIC ${LIBSOUNDIO_LIBS})
+-    install(TARGETS libsoundio_shared
++    # Private: a consumer links the shared library alone, and the backend libraries' absolute
++    # paths would otherwise be exported into its link interface.
++    target_link_libraries(libsoundio_shared LINK_PRIVATE ${LIBSOUNDIO_LIBS})
++    set_target_properties(libsoundio_shared PROPERTIES EXPORT_NAME libsoundio)
++    install(TARGETS libsoundio_shared EXPORT libsoundioTargets
+         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
++        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+ endif()
+ 
+ if(BUILD_STATIC_LIBS)
+@@ -257,6 +261,38 @@ install(FILES
+     ${LIBSOUNDIO_HEADERS}
+     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/soundio")
+ 
++# Packages exporting the shared library as libsoundio::libsoundio: a CMake package always, and with
++# CMake 4.3 or newer, which imports and exports CPS without an experimental gate, a CPS package too.
++# A consumer's find_package prefers the CPS package where its CMake reads one. The static library is
++# not exported.
++if(BUILD_DYNAMIC_LIBS)
++    include(CMakePackageConfigHelpers)
++    set(LIBSOUNDIO_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/libsoundio")
++    install(EXPORT libsoundioTargets
++        NAMESPACE libsoundio::
++        DESTINATION "${LIBSOUNDIO_CMAKE_INSTALL_DIR}")
++    file(WRITE "${libsoundio_BINARY_DIR}/libsoundioConfig.cmake"
++        "include(\"\${CMAKE_CURRENT_LIST_DIR}/libsoundioTargets.cmake\")\n")
++    write_basic_package_version_file(
++        "${libsoundio_BINARY_DIR}/libsoundioConfigVersion.cmake"
++        VERSION ${LIBSOUNDIO_VERSION}
++        COMPATIBILITY SameMajorVersion)
++    install(FILES
++        "${libsoundio_BINARY_DIR}/libsoundioConfig.cmake"
++        "${libsoundio_BINARY_DIR}/libsoundioConfigVersion.cmake"
++        DESTINATION "${LIBSOUNDIO_CMAKE_INSTALL_DIR}")
++    if(NOT CMAKE_VERSION VERSION_LESS 4.3)
++        install(PACKAGE_INFO libsoundio
++            EXPORT libsoundioTargets
++            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cps/libsoundio"
++            VERSION ${LIBSOUNDIO_VERSION}
++            COMPAT_VERSION ${LIBSOUNDIO_VERSION_MAJOR}.0.0
++            VERSION_SCHEMA simple
++            DEFAULT_TARGETS libsoundio
++            LICENSE MIT)
++    endif()
++endif()
++
+ # Example Programs
+ 
+ if(BUILD_EXAMPLE_PROGRAMS)
