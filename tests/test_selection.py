@@ -18,7 +18,10 @@ class SelectionTests(unittest.TestCase):
 
     def configure(self, *args, success=True):
         result = subprocess.run(
+            # configure creates the dependencies' install directories, so the default prefix (Program
+            # Files, /usr/local) is not one to rely on being writable
             [CMAKE, "-S", str(SOURCE), "-B", str(self.build),
+             f"-DCMAKE_INSTALL_PREFIX={Path(self.temp.name) / 'prefix'}",
              "-DENABLE_PYTHON3=OFF", *args],
             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         )
@@ -40,7 +43,8 @@ class SelectionTests(unittest.TestCase):
 
     def test_blocks(self):
         self.assertEqual(self.enabled(self.configure(
-            "-DTARGET_GR_CORE=OFF", "-DTARGET_GR_BLOCKS=ON")), {"SoapySDR"})
+            "-DTARGET_GR_CORE=OFF", "-DTARGET_GR_BLOCKS=ON")),
+            {"SoapySDR", "libzmq", "cppzmq", "libsoundio"})
 
     def test_control_plane(self):
         self.assertEqual(self.enabled(self.configure(
@@ -55,8 +59,8 @@ class SelectionTests(unittest.TestCase):
     def test_all_overrides_disabled_groups(self):
         self.assertEqual(self.enabled(self.configure(
             "-DTARGET_GR_CORE=OFF", "-DTARGET_ALL=ON")),
-            {"vir-simd", "cpp-httplib", "boost.ut", "magic-enum", "SoapySDR",
-             "nlohmann-json", "Boost", "zlib", "GoogleTest", "OpenSSL"})
+            {"vir-simd", "cpp-httplib", "boost.ut", "magic-enum", "SoapySDR", "libzmq", "cppzmq",
+             "libsoundio", "nlohmann-json", "Boost", "zlib", "GoogleTest", "OpenSSL"})
 
     def test_tests_off(self):
         result = self.configure("-DTARGET_ALL=ON", "-DTARGET_TESTS=OFF")
