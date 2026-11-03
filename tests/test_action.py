@@ -16,7 +16,8 @@ ACTION = yaml.safe_load((SOURCE / "action.yml").read_text())
 STEPS = {step["name"]: step for step in ACTION["runs"]["steps"]}
 DEPENDENCIES = {
     "vir-simd": "VIR_SIMD", "httplib": "HTTPLIB", "boost-ut": "BOOST_UT",
-    "magic-enum": "MAGIC_ENUM", "soapy-sdr": "SOAPY_SDR", "nlohmann-json": "NLOHMANN_JSON",
+    "magic-enum": "MAGIC_ENUM", "soapy-sdr": "SOAPY_SDR", "libzmq": "LIBZMQ", "cppzmq": "CPPZMQ",
+    "libsoundio": "LIBSOUNDIO", "nlohmann-json": "NLOHMANN_JSON",
     "boost": "BOOST", "zlib": "ZLIB", "gtest": "GTEST", "openssl": "OPENSSL",
     "tbb": "TBB", "python3": "PYTHON3",
 }
@@ -71,7 +72,7 @@ class ActionTests(unittest.TestCase):
 
     def test_standalone_groups(self):
         for group, expected in [
-            ("target-gr-blocks", {"soapy-sdr"}),
+            ("target-gr-blocks", {"soapy-sdr", "libzmq", "cppzmq", "libsoundio"}),
             ("target-gr-control-plane", {"httplib", "nlohmann-json", "boost", "zlib", "gtest"}),
             ("target-gr-studio", {"httplib", "openssl"}),
         ]:

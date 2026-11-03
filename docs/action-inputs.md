@@ -23,6 +23,9 @@ follow the groups; boolean inputs accept `ON`/`OFF`, `true`/`false`,
 | `enable-httplib` | core, control-plane, or Studio |
 | `enable-boost-ut` | core and tests |
 | `enable-soapy-sdr` | blocks |
+| `enable-libzmq` | blocks |
+| `enable-cppzmq` | blocks |
+| `enable-libsoundio` | blocks |
 | `enable-nlohmann-json` | control-plane |
 | `enable-boost` | control-plane |
 | `enable-zlib` | control-plane |
