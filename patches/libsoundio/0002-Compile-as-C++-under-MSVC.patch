@@ -1,0 +1,20 @@
+Compile the library as C++ under MSVC with every generator
+
+atomics.h takes std::atomic when compiled as C++ and stdatomic.h otherwise,
+which MSVC supports only experimentally. The MSVC flags pass /TP for that, but the
+Visual Studio generators compile .c sources as C whatever the flags say, so the
+sources are marked as C++ instead.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -198,6 +198,10 @@
+ )
+ 
+ if(MSVC)
++    # The library compiles as C++ under MSVC, for std::atomic. /TP alone does not do
++    # that under the Visual Studio generators, which compile .c sources as C regardless.
++    enable_language(CXX)
++    set_source_files_properties(${LIBSOUNDIO_SOURCES} PROPERTIES LANGUAGE CXX)
+     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Wall")
+     set(LIB_CFLAGS "/TP /W4")
+     set(EXAMPLE_CFLAGS "/W4")
