@@ -11,17 +11,56 @@ inputs:
   target-gr-blocks:
     description: Group default for the gr-blocks dependencies (TARGET_GR_BLOCKS)
     default: 'OFF'
+  target-all:
+    description: Enable all dependency groups (TARGET_ALL)
+    default: 'OFF'
+  target-gr-control-plane:
+    description: Group default for the control-plane dependencies (TARGET_GR_CONTROL_PLANE)
+    default: 'OFF'
+  target-gr-studio:
+    description: Group default for the Studio dependencies (TARGET_GR_STUDIO)
+    default: 'OFF'
+  target-tests:
+    description: Include test dependencies in group defaults (TARGET_TESTS)
+    default: 'ON'
+  enable-magic-enum:
+    description: Build magic-enum (ENABLE_MAGIC_ENUM). Empty follows target-gr-core
+    default: ''
+  enable-nlohmann-json:
+    description: Build nlohmann-json (ENABLE_NLOHMANN_JSON). Empty follows target-gr-control-plane
+    default: ''
+  enable-boost:
+    description: Build Boost (ENABLE_BOOST). Empty follows target-gr-control-plane
+    default: ''
+  enable-zlib:
+    description: Build zlib (ENABLE_ZLIB). Empty follows target-gr-control-plane
+    default: ''
+  enable-gtest:
+    description: Build GoogleTest (ENABLE_GTEST). Empty follows target-gr-control-plane and target-tests
+    default: ''
+  enable-openssl:
+    description: Build OpenSSL (ENABLE_OPENSSL). Empty follows target-gr-studio
+    default: ''
   enable-vir-simd:
     description: Build vir-simd (ENABLE_VIR_SIMD). Empty follows target-gr-core
     default: ''
   enable-httplib:
-    description: Build cpp-httplib (ENABLE_HTTPLIB). Empty follows target-gr-core
+    description: Build cpp-httplib (ENABLE_HTTPLIB). Empty follows core, control-plane or Studio
     default: ''
   enable-boost-ut:
-    description: Build boost.ut (ENABLE_BOOST_UT). Empty follows target-gr-core
+    description: Build boost.ut (ENABLE_BOOST_UT). Empty follows target-gr-core and target-tests
     default: ''
   enable-soapy-sdr:
     description: Build SoapySDR (ENABLE_SOAPY_SDR). Empty follows target-gr-blocks
+    default: ''
+  enable-libzmq:
+    description: Build libzmq (ENABLE_LIBZMQ). Empty follows target-gr-blocks
+    default: ''
+  enable-cppzmq:
+    description: Build cppzmq (ENABLE_CPPZMQ). Empty follows target-gr-blocks
+    default: ''
+  enable-libsoundio:
+    description: Build libsoundio (ENABLE_LIBSOUNDIO). Empty follows target-gr-blocks
     default: ''
   enable-tbb:
     description: Locate TBB, which must already be installed (ENABLE_TBB). Empty means OFF
@@ -87,12 +126,25 @@ runs:
       id: config
       shell: bash
       env:
+        IN_TARGET_ALL: ${{ inputs.target-all }}
+        IN_TARGET_GR_CONTROL_PLANE: ${{ inputs.target-gr-control-plane }}
+        IN_TARGET_GR_STUDIO: ${{ inputs.target-gr-studio }}
+        IN_TARGET_TESTS: ${{ inputs.target-tests }}
+        IN_ENABLE_MAGIC_ENUM: ${{ inputs.enable-magic-enum }}
+        IN_ENABLE_NLOHMANN_JSON: ${{ inputs.enable-nlohmann-json }}
+        IN_ENABLE_BOOST: ${{ inputs.enable-boost }}
+        IN_ENABLE_ZLIB: ${{ inputs.enable-zlib }}
+        IN_ENABLE_GTEST: ${{ inputs.enable-gtest }}
+        IN_ENABLE_OPENSSL: ${{ inputs.enable-openssl }}
         IN_TARGET_GR_CORE: ${{ inputs.target-gr-core }}
         IN_TARGET_GR_BLOCKS: ${{ inputs.target-gr-blocks }}
         IN_ENABLE_VIR_SIMD: ${{ inputs.enable-vir-simd }}
         IN_ENABLE_HTTPLIB: ${{ inputs.enable-httplib }}
         IN_ENABLE_BOOST_UT: ${{ inputs.enable-boost-ut }}
         IN_ENABLE_SOAPY_SDR: ${{ inputs.enable-soapy-sdr }}
+        IN_ENABLE_LIBZMQ: ${{ inputs.enable-libzmq }}
+        IN_ENABLE_CPPZMQ: ${{ inputs.enable-cppzmq }}
+        IN_ENABLE_LIBSOUNDIO: ${{ inputs.enable-libsoundio }}
         IN_ENABLE_TBB: ${{ inputs.enable-tbb }}
         IN_ENABLE_PYTHON3: ${{ inputs.enable-python3 }}
         IN_BUILD_TYPE: ${{ inputs.build-type }}
@@ -134,12 +186,32 @@ runs:
           printf '%s' "${p%/}"
         }
 
+        all=$(bool target-all "$IN_TARGET_ALL")
         core=$(bool target-gr-core "$IN_TARGET_GR_CORE")
         blocks=$(bool target-gr-blocks "$IN_TARGET_GR_BLOCKS")
+        control=$(bool target-gr-control-plane "$IN_TARGET_GR_CONTROL_PLANE")
+        studio=$(bool target-gr-studio "$IN_TARGET_GR_STUDIO")
+        tests=$(bool target-tests "$IN_TARGET_TESTS")
+        if [ "$all" = ON ]; then core=ON; blocks=ON; control=ON; studio=ON; fi
+        http_default=OFF
+        if [ "$core" = ON ] || [ "$control" = ON ] || [ "$studio" = ON ]; then http_default=ON; fi
+        ut_default=OFF
+        if [ "$core" = ON ] && [ "$tests" = ON ]; then ut_default=ON; fi
+        gtest_default=OFF
+        if [ "$control" = ON ] && [ "$tests" = ON ]; then gtest_default=ON; fi
         vir=$(toggle enable-vir-simd "$IN_ENABLE_VIR_SIMD" "$core")
-        httplib=$(toggle enable-httplib "$IN_ENABLE_HTTPLIB" "$core")
-        ut=$(toggle enable-boost-ut "$IN_ENABLE_BOOST_UT" "$core")
+        httplib=$(toggle enable-httplib "$IN_ENABLE_HTTPLIB" "$http_default")
+        ut=$(toggle enable-boost-ut "$IN_ENABLE_BOOST_UT" "$ut_default")
+        magic=$(toggle enable-magic-enum "$IN_ENABLE_MAGIC_ENUM" "$core")
         soapy=$(toggle enable-soapy-sdr "$IN_ENABLE_SOAPY_SDR" "$blocks")
+        libzmq=$(toggle enable-libzmq "$IN_ENABLE_LIBZMQ" "$blocks")
+        cppzmq=$(toggle enable-cppzmq "$IN_ENABLE_CPPZMQ" "$blocks")
+        soundio=$(toggle enable-libsoundio "$IN_ENABLE_LIBSOUNDIO" "$blocks")
+        json=$(toggle enable-nlohmann-json "$IN_ENABLE_NLOHMANN_JSON" "$control")
+        boost=$(toggle enable-boost "$IN_ENABLE_BOOST" "$control")
+        zlib=$(toggle enable-zlib "$IN_ENABLE_ZLIB" "$control")
+        gtest=$(toggle enable-gtest "$IN_ENABLE_GTEST" "$gtest_default")
+        openssl=$(toggle enable-openssl "$IN_ENABLE_OPENSSL" "$studio")
         tbb=$(toggle enable-tbb "$IN_ENABLE_TBB" OFF)
         python=$(toggle enable-python3 "$IN_ENABLE_PYTHON3" "$core")
 
@@ -189,9 +261,10 @@ runs:
         { read -r c_compiler; read -r cxx_compiler; read -r processor; } < <(tr -d '\r' < "$probe/build/toolchain.txt")
         rm -rf "$probe"
 
-        # the pins live in the CMake sources and the build recipe in this file, so a change to either
-        # is a new build
-        sources=$(cat "$action_path/action.yml" "$action_path/CMakeLists.txt" "$action_path"/deps/*.cmake | sha256)
+        # the pins live in the CMake sources, the patches change what they install, and the build
+        # recipe is this file, so a change to any of them is a new build
+        sources=$(cat "$action_path/action.yml" "$action_path/CMakeLists.txt" "$action_path"/deps/*.cmake \
+                      "$action_path"/patches/*/*.patch | sha256)
 
         # keyed on the resolved toggles rather than the groups: the groups only supply defaults, so two
         # requests that resolve to the same set share an entry
@@ -210,6 +283,15 @@ runs:
         httplib=$httplib
         boost-ut=$ut
         soapy-sdr=$soapy
+        libzmq=$libzmq
+        cppzmq=$cppzmq
+        libsoundio=$soundio
+        magic-enum=$magic
+        nlohmann-json=$json
+        boost=$boost
+        zlib=$zlib
+        gtest=$gtest
+        openssl=$openssl
         tbb=$tbb
         python3=$python
         cmake-args=$IN_CMAKE_ARGS
@@ -219,7 +301,7 @@ runs:
         )
         hash=$(printf '%s' "$manifest" | sha256)
         bit() { [ "$1" = ON ] && echo 1 || echo 0; }
-        selection="vir$(bit "$vir")-http$(bit "$httplib")-ut$(bit "$ut")-soapy$(bit "$soapy")-tbb$(bit "$tbb")-py$(bit "$python")"
+        selection="vir$(bit "$vir")-http$(bit "$httplib")-ut$(bit "$ut")-soapy$(bit "$soapy")-zmq$(bit "$libzmq")-cppzmq$(bit "$cppzmq")-sio$(bit "$soundio")-magic$(bit "$magic")-json$(bit "$json")-boost$(bit "$boost")-zlib$(bit "$zlib")-gtest$(bit "$gtest")-ssl$(bit "$openssl")-tbb$(bit "$tbb")-py$(bit "$python")"
         platform=$(lower "${ImageOS:-$RUNNER_OS}")
         key="$IN_CACHE_KEY_PREFIX-$(slug "$platform")-$(slug "$RUNNER_ARCH")-$(slug "$cxx_compiler")-$(slug "$build_type")-$selection-${hash:0:16}"
 
@@ -238,12 +320,25 @@ runs:
           echo "cache=$cache"
           echo "export-env=$export_env"
           echo "build-type=$build_type"
+          echo "target-all=$all"
+          echo "target-gr-control-plane=$control"
+          echo "target-gr-studio=$studio"
+          echo "target-tests=$tests"
           echo "target-gr-core=$core"
           echo "target-gr-blocks=$blocks"
           echo "vir-simd=$vir"
           echo "httplib=$httplib"
           echo "boost-ut=$ut"
           echo "soapy-sdr=$soapy"
+          echo "libzmq=$libzmq"
+          echo "cppzmq=$cppzmq"
+          echo "libsoundio=$soundio"
+          echo "magic-enum=$magic"
+          echo "nlohmann-json=$json"
+          echo "boost=$boost"
+          echo "zlib=$zlib"
+          echo "gtest=$gtest"
+          echo "openssl=$openssl"
           echo "tbb=$tbb"
           echo "python3=$python"
           echo "msvc-runtime-static=$runtime_static"
@@ -272,12 +367,25 @@ runs:
         BUILD_DIR: ${{ steps.config.outputs.build-dir }}
         OWNED_BUILD: ${{ steps.config.outputs.owned-build }}
         BUILD_TYPE: ${{ steps.config.outputs.build-type }}
+        TARGET_ALL: ${{ steps.config.outputs.target-all }}
+        TARGET_GR_CONTROL_PLANE: ${{ steps.config.outputs.target-gr-control-plane }}
+        TARGET_GR_STUDIO: ${{ steps.config.outputs.target-gr-studio }}
+        TARGET_TESTS: ${{ steps.config.outputs.target-tests }}
+        ENABLE_MAGIC_ENUM: ${{ steps.config.outputs.magic-enum }}
+        ENABLE_NLOHMANN_JSON: ${{ steps.config.outputs.nlohmann-json }}
+        ENABLE_BOOST: ${{ steps.config.outputs.boost }}
+        ENABLE_ZLIB: ${{ steps.config.outputs.zlib }}
+        ENABLE_GTEST: ${{ steps.config.outputs.gtest }}
+        ENABLE_OPENSSL: ${{ steps.config.outputs.openssl }}
         TARGET_GR_CORE: ${{ steps.config.outputs.target-gr-core }}
         TARGET_GR_BLOCKS: ${{ steps.config.outputs.target-gr-blocks }}
         ENABLE_VIR_SIMD: ${{ steps.config.outputs.vir-simd }}
         ENABLE_HTTPLIB: ${{ steps.config.outputs.httplib }}
         ENABLE_BOOST_UT: ${{ steps.config.outputs.boost-ut }}
         ENABLE_SOAPY_SDR: ${{ steps.config.outputs.soapy-sdr }}
+        ENABLE_LIBZMQ: ${{ steps.config.outputs.libzmq }}
+        ENABLE_CPPZMQ: ${{ steps.config.outputs.cppzmq }}
+        ENABLE_LIBSOUNDIO: ${{ steps.config.outputs.libsoundio }}
         ENABLE_TBB: ${{ steps.config.outputs.tbb }}
         ENABLE_PYTHON3: ${{ steps.config.outputs.python3 }}
         MSVC_RUNTIME_STATIC: ${{ steps.config.outputs.msvc-runtime-static }}
@@ -297,12 +405,25 @@ runs:
           -S "$ACTION_PATH" -B "$BUILD_DIR"
           "-DCMAKE_INSTALL_PREFIX=$PREFIX"
           "-DGR_DEPS_BUILD_TYPE=$BUILD_TYPE"
+          "-DTARGET_ALL=$TARGET_ALL"
+          "-DTARGET_GR_CONTROL_PLANE=$TARGET_GR_CONTROL_PLANE"
+          "-DTARGET_GR_STUDIO=$TARGET_GR_STUDIO"
+          "-DTARGET_TESTS=$TARGET_TESTS"
+          "-DENABLE_MAGIC_ENUM=$ENABLE_MAGIC_ENUM"
+          "-DENABLE_NLOHMANN_JSON=$ENABLE_NLOHMANN_JSON"
+          "-DENABLE_BOOST=$ENABLE_BOOST"
+          "-DENABLE_ZLIB=$ENABLE_ZLIB"
+          "-DENABLE_GTEST=$ENABLE_GTEST"
+          "-DENABLE_OPENSSL=$ENABLE_OPENSSL"
           "-DTARGET_GR_CORE=$TARGET_GR_CORE"
           "-DTARGET_GR_BLOCKS=$TARGET_GR_BLOCKS"
           "-DENABLE_VIR_SIMD=$ENABLE_VIR_SIMD"
           "-DENABLE_HTTPLIB=$ENABLE_HTTPLIB"
           "-DENABLE_BOOST_UT=$ENABLE_BOOST_UT"
           "-DENABLE_SOAPY_SDR=$ENABLE_SOAPY_SDR"
+          "-DENABLE_LIBZMQ=$ENABLE_LIBZMQ"
+          "-DENABLE_CPPZMQ=$ENABLE_CPPZMQ"
+          "-DENABLE_LIBSOUNDIO=$ENABLE_LIBSOUNDIO"
           "-DENABLE_TBB=$ENABLE_TBB"
           "-DENABLE_PYTHON3=$ENABLE_PYTHON3"
           "-DGR_DEPS_MSVC_RUNTIME_STATIC=$MSVC_RUNTIME_STATIC"

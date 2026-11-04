@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Parent <john.parent@kitware.com>
+Date: Tue, 13 Oct 2026 18:24:49 -0400
+Subject: [PATCH 4/6] Use single-argument constexpr_wrapper::operator[] on MSVC
+
+MSVC cannot parse a pack expansion inside a subscript in a template
+argument list (C2059).
+
+ChangeLog:
+
+	* vir/constexpr_wrapper.h (constexpr_wrapper::operator[]): Skip
+	the multidimensional overloads for MSVC.
+
+Signed-off-by: John Parent <john.parent@kitware.com>
+Assisted-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ vir/constexpr_wrapper.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/vir/constexpr_wrapper.h b/vir/constexpr_wrapper.h
+index 4414745..95946cc 100644
+--- a/vir/constexpr_wrapper.h
++++ b/vir/constexpr_wrapper.h
+@@ -337,7 +337,7 @@ namespace vir
+         { return value; }
+ 
+       // overload operator[] for constexpr_value and non-constexpr_value
+-#if __cpp_multidimensional_subscript
++#if __cpp_multidimensional_subscript && !(defined _MSC_VER && !defined __clang__)
+       template <constexpr_value... Args>
+         requires std::is_compound_v<value_type>
+         _static constexpr constexpr_wrapper<value[Args::value...]>

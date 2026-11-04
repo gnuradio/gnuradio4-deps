@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check dependency selection
+        run: python tests/test_selection.py
+
       - id: deps
         uses: ./
         with:
@@ -32,13 +35,19 @@ jobs:
           test -f "$prefix/include/boost/ut.hpp"
           test -f "$prefix/include/httplib.h"
           find "$prefix" -name vir-simd-config.cmake | grep -q .
-          soapy=$(find "$prefix" -name SoapySDRConfig.cmake)
-          if [ "$BLOCKS" = ON ] && [ -z "$soapy" ]; then
-            echo "::error::SoapySDR was selected but not installed"; exit 1
-          fi
-          if [ "$BLOCKS" = OFF ] && [ -n "$soapy" ]; then
-            echo "::error::SoapySDR was not selected but is installed"; exit 1
-          fi
+          # each blocks dependency, by a file its consumers look for: present exactly when selected
+          check() {
+            if [ "$BLOCKS" = ON ] && [ -z "$2" ]; then
+              echo "::error::$1 was selected but not installed"; exit 1
+            fi
+            if [ "$BLOCKS" = OFF ] && [ -n "$2" ]; then
+              echo "::error::$1 was not selected but is installed"; exit 1
+            fi
+          }
+          check SoapySDR "$(find "$prefix" -name SoapySDRConfig.cmake)"
+          check libzmq "$(find "$prefix" -name ZeroMQConfig.cmake)"
+          check cppzmq "$(find "$prefix" -name cppzmqConfig.cmake)"
+          check libsoundio "$(find "$prefix" -name libsoundioConfig.cmake)"
 
   # the same selection, after build has saved it, must be restored rather than rebuilt
   cached:
