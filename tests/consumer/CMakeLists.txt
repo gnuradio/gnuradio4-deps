@@ -1,0 +1,43 @@
+cmake_minimum_required(VERSION 3.21)
+project(gr_deps_consumer LANGUAGES CXX)
+
+enable_testing()
+option(CHECK_BLOCKS "Check the blocks dependencies" OFF)
+option(CHECK_CONTROL_PLANE "Check the control-plane dependencies" OFF)
+option(CHECK_STUDIO "Check the Studio dependencies" OFF)
+
+find_package(ut CONFIG REQUIRED)
+find_package(httplib CONFIG REQUIRED)
+find_package(vir-simd CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
+
+add_executable(deps-consumer main.cpp)
+target_compile_features(deps-consumer PRIVATE cxx_std_20)
+target_link_libraries(deps-consumer PRIVATE
+  Boost::ut httplib::httplib vir-simd::vir-simd magic_enum::magic_enum)
+add_test(NAME deps-consumer COMMAND deps-consumer)
+
+if(CHECK_BLOCKS)
+  find_package(SoapySDR CONFIG REQUIRED)
+  target_compile_definitions(deps-consumer PRIVATE CHECK_BLOCKS)
+  target_link_libraries(deps-consumer PRIVATE SoapySDR)
+endif()
+
+if(CHECK_CONTROL_PLANE)
+  find_package(nlohmann_json CONFIG REQUIRED)
+  find_package(Boost CONFIG REQUIRED)
+  find_package(ZLIB REQUIRED)
+  find_package(GTest CONFIG REQUIRED)
+  target_compile_definitions(deps-consumer PRIVATE CHECK_CONTROL_PLANE)
+  target_link_libraries(deps-consumer PRIVATE nlohmann_json::nlohmann_json Boost::headers ZLIB::ZLIB)
+  add_executable(gtest-consumer gtest.cpp)
+  target_compile_features(gtest-consumer PRIVATE cxx_std_17)
+  target_link_libraries(gtest-consumer PRIVATE GTest::gtest_main)
+  add_test(NAME gtest-consumer COMMAND gtest-consumer)
+endif()
+
+if(CHECK_STUDIO)
+  find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+  target_compile_definitions(deps-consumer PRIVATE CHECK_STUDIO)
+  target_link_libraries(deps-consumer PRIVATE OpenSSL::Crypto)
+endif()

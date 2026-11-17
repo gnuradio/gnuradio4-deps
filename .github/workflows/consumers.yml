@@ -1,0 +1,44 @@
+name: Installed dependency consumers
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consumers:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure all dependencies
+        shell: bash
+        run: >-
+          cmake -S . -B build-deps
+          -DTARGET_ALL=ON -DENABLE_PYTHON3=OFF
+          -DCMAKE_INSTALL_PREFIX="${RUNNER_TEMP//\\//}/gr-deps-consumer-prefix"
+      - name: Build and install all dependencies
+        run: cmake --build build-deps --config Release --parallel 4
+      - name: Configure consumers
+        shell: bash
+        run: >-
+          cmake -S tests/consumer -B build-consumer
+          -DCMAKE_PREFIX_PATH="${RUNNER_TEMP//\\//}/gr-deps-consumer-prefix"
+          -DCHECK_BLOCKS=ON -DCHECK_CONTROL_PLANE=ON -DCHECK_STUDIO=ON
+      - name: Build consumers
+        run: cmake --build build-consumer --config Release --parallel 4
+      - name: Run consumers
+        shell: bash
+        run: |
+          prefix="${RUNNER_TEMP//\\//}/gr-deps-consumer-prefix"
+          export PATH="$prefix/bin:$PATH"
+          export LD_LIBRARY_PATH="$prefix/lib:$prefix/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          export DYLD_LIBRARY_PATH="$prefix/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+          ctest --test-dir build-consumer -C Release --output-on-failure
