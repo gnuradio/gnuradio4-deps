@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check dependency selection
+        run: python tests/test_selection.py
+
       - id: deps
         uses: ./
         with:
